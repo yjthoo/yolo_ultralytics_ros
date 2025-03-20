@@ -65,7 +65,8 @@ def callback(data):
         else:
             X, Y = None, None
 
-        all_objects.append(f"{name}: X={X:.2f}m, Y={Y:.2f}m, distance={avg_distance:.2f}m")
+        #all_objects.append(f"{name}: X={X:.2f}m, Y={Y:.2f}m, distance={avg_distance:.2f}m")
+        all_objects.append(f"{name}: distance={avg_distance:.2f}m")
 
     classes_pub.publish(String(data=str(all_objects)))
 
