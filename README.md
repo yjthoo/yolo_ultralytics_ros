@@ -12,7 +12,6 @@ You can then run the following command, in another terminal, and observe the res
 
 ```
 roslaunch yolo_ultralytics_ros yolo_depth_image.launch 
-
 ```
 
 which publishes the estimated distance of detected objects from the camera based on its depth map. To observe these estimations, you can run the following command from another terminal:
