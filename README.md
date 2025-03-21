@@ -1,6 +1,6 @@
 # YOLO ultralytics ROS
 
-This ROS package, tested for ROS Noetic on Ubuntu 20.04.6 LTS, uses the Intel Realsense D455 camera to detect and estimate the pose of objects/obstacles in the environment. 
+This ROS package, tested for ROS Noetic on Ubuntu 20.04.6 LTS, uses the Intel Realsense D455 camera to detect and estimate the pose of objects/obstacles in the environment following the [Ultralytics YOLO with ROS documentation](https://docs.ultralytics.com/guides/ros-quickstart/#setting-up-ultralytics-yolo-with-ros). 
 
 It uses the [realsense-ros](https://github.com/IntelRealSense/realsense-ros/tree/ros1-legacy) package which will be need to installed in your catkin workspace. To launch the camera from ROS and gain access to the required data, you will need to run the following command:
 
