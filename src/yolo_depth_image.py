@@ -9,7 +9,7 @@ from std_msgs.msg import String
 import cv2
 from ultralytics import YOLO
 
-class YoloDepthEstimator:
+class YoloPoseEstimator:
     def __init__(self):
         rospy.init_node("ultralytics_depth")
 
@@ -32,7 +32,7 @@ class YoloDepthEstimator:
         rospy.Subscriber("/camera/depth/camera_info", CameraInfo, self.camera_info_callback)
         rospy.Subscriber("/camera/depth/image_rect_raw", Image, self.depth_callback)
 
-        rospy.loginfo("YoloDepthEstimator node initialized")
+        rospy.loginfo("YoloPoseEstimator node initialized")
 
     def camera_info_callback(self, msg):
         """Retrieves camera intrinsics dynamically from /camera/depth/camera_info."""
@@ -73,6 +73,7 @@ class YoloDepthEstimator:
                 avg_distance = np.mean(obj) if len(obj) else np.inf  # Compute average depth
 
                 # Compute centroid
+                # Keep in mind that "Operating Range (Min-Max): .6m-6m" from https://www.intel.com/content/www/us/en/products/sku/205847/intel-realsense-depth-camera-d455/specifications.html
                 ys, xs = np.where(resized_mask == 1)
                 if len(xs) > 0 and len(ys) > 0 and not np.isinf(avg_distance):
                     cx = np.mean(xs)
@@ -98,7 +99,7 @@ class YoloDepthEstimator:
 
 if __name__ == "__main__":
     try:
-        node = YoloDepthEstimator()
+        node = YoloPoseEstimator()
         rospy.spin()
     except rospy.ROSInterruptException:
         pass
