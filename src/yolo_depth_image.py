@@ -83,10 +83,12 @@ class YoloPoseEstimator:
                     X = (cx - self.cx_cam) * avg_distance / self.fx
                     Y = (cy - self.cy_cam) * avg_distance / self.fy
 
-                    # Only tracking cell phone for tests
-                    if name == "cell phone":
-                        all_objects.append(f"{name}: X={X:.2f}m, Y={Y:.2f}m, distance={avg_distance:.2f}m, Centroid pixel: ({cx:.1f}, {cy:.1f}), Camera center: ({self.cx_cam:.1f}, {self.cy_cam:.1f})")
-                        self.classes_pub.publish(String(data=str(all_objects[0])))
+                    # invert the Y coordinate axis
+                    Y = -Y
+
+                    all_objects.append(f"{name}: X={X:.2f}m, Y={Y:.2f}m, distance={avg_distance:.2f}m")
+            
+            self.classes_pub.publish(String(data=str(all_objects)))
 
             # Publish YOLO-annotated images with segmentation mask
             if self.seg_image_pub.get_num_connections():
