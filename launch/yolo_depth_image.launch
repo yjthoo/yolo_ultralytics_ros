@@ -1,4 +1,11 @@
 <launch>
+    <arg name="use_tcp_endpoint"  default="false"/>
+
+    <group if="$(arg use_tcp_endpoint)">
+        <!-- Launch the ROS-TCP-Endpoint -->
+        <include file="$(find ros_tcp_endpoint)/launch/endpoint.launch"/>
+    </group>
+
     <!-- Launch file to run the AruCo Marker detection -->
     <node pkg="yolo_ultralytics_ros" type="yolo_depth_image.py" name="ultralytics_depth" output="screen">
     </node>
