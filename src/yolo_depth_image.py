@@ -8,6 +8,7 @@ from sensor_msgs.msg import Image, CameraInfo
 from std_msgs.msg import String
 import cv2
 from ultralytics import YOLO
+import json
 
 class YoloPoseEstimator:
     def __init__(self):
@@ -22,6 +23,9 @@ class YoloPoseEstimator:
         self.classes_pub = rospy.Publisher("/ultralytics/detection/distance", String, queue_size=5)
         self.seg_image_pub = rospy.Publisher("/ultralytics/segmentation/image", Image, queue_size=5)
 
+        # Store latest detections
+        self.latest_detections = None
+
         # Camera intrinsics (initialized as None until received)
         self.fx = None
         self.fy = None
@@ -32,6 +36,9 @@ class YoloPoseEstimator:
         rospy.Subscriber("/camera/depth/camera_info", CameraInfo, self.camera_info_callback)
         rospy.Subscriber("/camera/depth/image_rect_raw", Image, self.depth_callback)
 
+        # Add timer to publish detections once per second
+        rospy.Timer(rospy.Duration(1.0), self.publish_detections)
+
         rospy.loginfo("YoloPoseEstimator node initialized")
 
     def camera_info_callback(self, msg):
@@ -40,7 +47,6 @@ class YoloPoseEstimator:
         self.fy = msg.K[4]  # Focal length y
         self.cx_cam = msg.K[2]  # Principal point x
         self.cy_cam = msg.K[5]  # Principal point y
-        # rospy.loginfo(f"Camera intrinsics received: fx={self.fx}, fy={self.fy}, cx={self.cx_cam}, cy={self.cy_cam}")
 
     def depth_callback(self, depth_msg):
         """Processes depth and RGB images to estimate object distance and position."""
@@ -59,7 +65,7 @@ class YoloPoseEstimator:
 
             result = self.segmentation_model(image)
 
-            all_objects = []
+            detected_objects = []
             for index, cls in enumerate(result[0].boxes.cls):
                 class_index = int(cls.cpu().numpy())
                 name = result[0].names[class_index]
@@ -86,9 +92,13 @@ class YoloPoseEstimator:
                     # invert the Y coordinate axis
                     Y = -Y
 
-                    all_objects.append(f"{name}: X={X:.2f}m, Y={Y:.2f}m, distance={avg_distance:.2f}m")
+                    detected_objects.append({"name": name, 
+                                             "X": float(round(X, 3)), 
+                                             "Y": float(round(Y, 3)), 
+                                             "Z": float(round(avg_distance, 3))})
             
-            self.classes_pub.publish(String(data=str(all_objects)))
+            # Store latest detections for timer-based publishing
+            self.latest_detections = detected_objects
 
             # Publish YOLO-annotated images with segmentation mask
             if self.seg_image_pub.get_num_connections():
@@ -98,6 +108,15 @@ class YoloPoseEstimator:
 
         except rospy.ROSException as e:
             rospy.logwarn(f"Timeout waiting for RGB image: {e}")
+
+    def publish_detections(self, event):
+        """Publish latest detections once per second."""
+
+        if self.latest_detections:
+            msg_json = json.dumps({"objects": self.latest_detections})
+            #rospy.loginfo(f"Publishing detections: {msg_json}")
+            self.classes_pub.publish(String(data=msg_json))
+
 
 if __name__ == "__main__":
     try:
