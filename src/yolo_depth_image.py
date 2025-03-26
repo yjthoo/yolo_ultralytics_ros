@@ -18,6 +18,7 @@ class YoloPoseEstimator:
         time.sleep(1)
         self.detection_model = YOLO("yolo11m.pt")
         self.segmentation_model = YOLO("yolo11m-seg.pt")
+        self.MIN_CONFIDENCE = 0.6
 
         # ROS Publishers
         self.classes_pub = rospy.Publisher("/ultralytics/detection/distance", String, queue_size=5)
@@ -67,9 +68,20 @@ class YoloPoseEstimator:
 
             detected_objects = []
             for index, cls in enumerate(result[0].boxes.cls):
+
+                confidence = float(result[0].boxes.conf[index].cpu().numpy())
+                if confidence < self.MIN_CONFIDENCE:
+                    continue  # skip low-confidence detections
+                
+                # class index, name, and bounding box 
                 class_index = int(cls.cpu().numpy())
                 name = result[0].names[class_index]
                 mask = result[0].masks.data.cpu().numpy()[index, :, :].astype(int)
+
+                # Bounding box size (in pixels)
+                x_min, y_min, x_max, y_max = result[0].boxes.xyxy[index].cpu().numpy()
+                box_width_px  = x_max - x_min
+                box_height_px = y_max - y_min
 
                 # Resize mask to match depth image resolution
                 resized_mask = cv2.resize(mask.astype(np.uint8), (depth.shape[1], depth.shape[0]), interpolation=cv2.INTER_NEAREST)
@@ -92,10 +104,19 @@ class YoloPoseEstimator:
                     # invert the Y coordinate axis
                     Y = -Y
 
-                    detected_objects.append({"name": name, 
-                                             "X": float(round(X, 3)), 
-                                             "Y": float(round(Y, 3)), 
-                                             "Z": float(round(avg_distance, 3))})
+                    # Estimate real-world size (in meters)
+                    real_width  = float(round(box_width_px  * avg_distance / self.fx, 3))
+                    real_height = float(round(box_height_px * avg_distance / self.fy, 3))
+
+                    detected_objects.append({
+                        "name": name,
+                        "X": float(round(X, 3)),
+                        "Y": float(round(Y, 3)),
+                        "Z": float(round(avg_distance, 3)),
+                        "width": real_width,
+                        "height": real_height,
+                        "confidence": round(confidence, 3)
+                    })
             
             # Store latest detections for timer-based publishing
             self.latest_detections = detected_objects
