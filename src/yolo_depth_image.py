@@ -37,7 +37,7 @@ class YoloPoseEstimator:
         rospy.Subscriber("/camera/depth/camera_info", CameraInfo, self.camera_info_callback)
         rospy.Subscriber("/camera/depth/image_rect_raw", Image, self.depth_callback)
 
-        # Add timer to publish detections once per second
+        # Add timer to publish detections with given rate
         rospy.Timer(rospy.Duration(1.0), self.publish_detections)
 
         rospy.loginfo("YoloPoseEstimator node initialized")
@@ -94,15 +94,16 @@ class YoloPoseEstimator:
                 # Keep in mind that "Operating Range (Min-Max): .6m-6m" from https://www.intel.com/content/www/us/en/products/sku/205847/intel-realsense-depth-camera-d455/specifications.html
                 ys, xs = np.where(resized_mask == 1)
                 if len(xs) > 0 and len(ys) > 0 and not np.isinf(avg_distance):
-                    cx = np.mean(xs)
-                    cy = np.mean(ys)
+                    cx_mask = np.mean(xs)
+                    cy_mask = np.mean(ys)
+                    X_mask = (cx_mask - self.cx_cam) * avg_distance / self.fx
+                    Y_mask = -(cy_mask - self.cy_cam) * avg_distance / self.fy  # Inverted for Unity convention
 
-                    # Convert to camera frame (X, Y, Z)
-                    X = (cx - self.cx_cam) * avg_distance / self.fx
-                    Y = (cy - self.cy_cam) * avg_distance / self.fy
-
-                    # invert the Y coordinate axis
-                    Y = -Y
+                    # Bounding box center
+                    cx_bbox = (x_min + x_max) / 2
+                    cy_bbox = (y_min + y_max) / 2
+                    X_bbox = (cx_bbox - self.cx_cam) * avg_distance / self.fx
+                    Y_bbox = -(cy_bbox - self.cy_cam) * avg_distance / self.fy
 
                     # Estimate real-world size (in meters)
                     real_width  = float(round(box_width_px  * avg_distance / self.fx, 3))
@@ -110,8 +111,10 @@ class YoloPoseEstimator:
 
                     detected_objects.append({
                         "name": name,
-                        "X": float(round(X, 3)),
-                        "Y": float(round(Y, 3)),
+                        "X_mask": float(round(X_mask, 3)),
+                        "Y_mask": float(round(Y_mask, 3)),
+                        "X_bbox": float(round(X_bbox, 3)),
+                        "Y_bbox": float(round(Y_bbox, 3)),
                         "Z": float(round(avg_distance, 3)),
                         "width": real_width,
                         "height": real_height,
