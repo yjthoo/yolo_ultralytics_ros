@@ -25,6 +25,15 @@ which publishes the estimated distance of detected objects from the camera based
 rostopic echo /ultralytics/detection/distance 
 ```
 
+## (Optional) Running the ROS TCP Endpoint
+
+```
+roslaunch ros_tcp_endpoint endpoint.launch 
+
+```
+
+Additional information and setup can be found in the [ROS TCP Endpoint repository](https://github.com/Unity-Technologies/ROS-TCP-Endpoint).
+
 
 ## Common issues
 

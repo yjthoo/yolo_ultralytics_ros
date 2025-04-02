@@ -18,7 +18,7 @@ class YoloPoseEstimator:
         time.sleep(1)
         self.detection_model = YOLO("yolo11m.pt")
         self.segmentation_model = YOLO("yolo11m-seg.pt")
-        self.MIN_CONFIDENCE = 0.6
+        self.MIN_CONFIDENCE = 0.5
 
         # ROS Publishers
         self.classes_pub = rospy.Publisher("/ultralytics/detection/distance", String, queue_size=5)
